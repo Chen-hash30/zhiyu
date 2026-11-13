@@ -1,0 +1,45 @@
+appId: com.zhiyu.app
+productName: 知屿
+copyright: Copyright © 2026 知屿
+directories:
+  output: installer
+  buildResources: build
+files:
+  - dist/**
+  - electron/**
+  - build/icon.png
+  - package.json
+  - "!node_modules/@xenova/transformers/dist/*.map"
+  - "!node_modules/@xenova/transformers/dist/ort-*.wasm"
+  - "!node_modules/@xenova/transformers/node_modules/sharp/**"
+  - "!node_modules/onnxruntime-node/bin/napi-v3/darwin/**"
+  - "!node_modules/onnxruntime-node/bin/napi-v3/linux/**"
+  - "!node_modules/onnxruntime-node/bin/napi-v3/win32/arm64/**"
+extraResources:
+  - from: build/models
+    to: models
+  - from: licenses/MODEL-NOTICE.txt
+    to: models/MODEL-NOTICE.txt
+asarUnpack:
+  - node_modules/onnxruntime-node/**
+npmRebuild: false
+asar: true
+compression: normal
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+  artifactName: Zhiyu-Setup-${version}.${ext}
+  executableName: Zhiyu
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 知屿
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico

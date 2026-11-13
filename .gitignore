@@ -1,0 +1,13 @@
+node_modules/
+dist/
+release/
+out/
+.shots/
+.vite/
+.test-vault/
+.electron-userdata/
+*.log
+.DS_Store
+installer/
+build/models/
+share/
