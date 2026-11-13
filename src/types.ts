@@ -97,6 +97,7 @@ export interface RagStatus {
   notes: number;
   chunks: number;
   builtAt: string;
+  engines?: { key: string; model: string; notes: number; chunks: number }[];
   progress: RagProgress | null;
 }
 

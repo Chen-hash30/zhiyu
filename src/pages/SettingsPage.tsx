@@ -457,8 +457,8 @@ export function SettingsPage() {
                 <span>个语义片段</span>
               </div>
               <div className="rag-stat wide">
-                <b>{ragStatus?.model || 'bge-small-zh-v1.5'}</b>
-                <span>本地小模型 · 约 23MB · 不需要显卡</span>
+                <b>{ragStatus?.model || '中英双引擎'}</b>
+                <span>中文 + 英文模型 · 约 56MB · 不需要显卡</span>
               </div>
             </div>
             {ragBuilding ? (

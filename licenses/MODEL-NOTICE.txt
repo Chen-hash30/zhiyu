@@ -1,16 +1,20 @@
-BAAI bge-small-zh-v1.5
-======================
+BAAI bge-small-zh-v1.5 / bge-small-en-v1.5
+=========================================
 
-This application bundles a quantized ONNX conversion of the BAAI/bge-small-zh-v1.5
-text embedding model for local semantic retrieval.
+This application bundles quantized ONNX conversions of the BAAI/bge-small-zh-v1.5
+and BAAI/bge-small-en-v1.5 text embedding models for local semantic retrieval.
 
-Original model:
+Original models:
   BAAI/bge-small-zh-v1.5
   https://huggingface.co/BAAI/bge-small-zh-v1.5
+  BAAI/bge-small-en-v1.5
+  https://huggingface.co/BAAI/bge-small-en-v1.5
 
-ONNX conversion:
+ONNX conversions:
   Xenova/bge-small-zh-v1.5
   https://huggingface.co/Xenova/bge-small-zh-v1.5
+  Xenova/bge-small-en-v1.5
+  https://huggingface.co/Xenova/bge-small-en-v1.5
 
 License: MIT
 Copyright (c) BAAI (Beijing Academy of Artificial Intelligence)

@@ -19,7 +19,7 @@
 - **三层本地结构**：`raw/` 原始资料、`wiki/` 知识条目、`AGENTS.md` 整理规则。
 - **AI 整理**：先展示新增与更新的条目预览，确认后才写入；自动更新索引和整理日志。
 - **不经过 AI 直接入库**：原始资料可以原样保存为「来源」条目，不调用模型、不联网；大文件仍保留只读预览保护。
-- **本地语义检索（RAG）**：内置中文小模型 `bge-small-zh-v1.5`，关键词 + 向量混合检索；首次打开自动建立索引，之后只处理变化的笔记，全程离线。
+- **本地语义检索（RAG）**：内置中英双引擎（`bge-small-zh-v1.5` + `bge-small-en-v1.5`），按语言自动路由，关键词 + 向量混合检索；首次打开自动建立索引，之后只处理变化的笔记，全程离线。
 - **本地知识阅读**：双向链接、反向链接、全文搜索、阅读与编辑模式。
 - **关系图谱**：根据条目之间的链接生成，可缩放、拖拽、点击打开。
 - **多会话对话**：对话记录按会话保存，可新建、切换、重命名、删除。
@@ -52,7 +52,7 @@ npm run dist       # 构建 Windows NSIS 安装包
 npm run setup:model
 ```
 
-脚本会从 `hf-mirror.com` 下载 `bge-small-zh-v1.5` 的配置、分词器和量化 ONNX 模型到 `build/models/bge-small-zh-v1.5/`（约 23MB），已有文件会跳过；下载失败时会自动尝试 Hugging Face 官方源。模型采用 MIT 许可证，来源与声明见 `licenses/MODEL-NOTICE.txt`。
+脚本会从 `hf-mirror.com` 下载中文 `bge-small-zh-v1.5` 和英文 `bge-small-en-v1.5` 的配置、分词器和量化 ONNX 模型到 `build/models/`（合计约 56MB），已有文件会跳过；下载失败时会自动尝试 Hugging Face 官方源。两个模型均采用 MIT 许可证，来源与声明见 `licenses/MODEL-NOTICE.txt`。
 
 安装包会把 `build/models` 一起打包，因此终端用户不需要再下载。删除该目录会导致 RAG 不可用，但关键词检索和直接入库不受影响。
 
@@ -126,4 +126,4 @@ licenses/               第三方模型与素材声明
 
 ## 许可证
 
-项目代码采用 [MIT License](LICENSE)。内置的 `bge-small-zh-v1.5` 语义检索模型同样采用 MIT 许可证，来源和版权声明见 `licenses/MODEL-NOTICE.txt`。
+项目代码采用 [MIT License](LICENSE)。内置的中文 `bge-small-zh-v1.5` 和英文 `bge-small-en-v1.5` 语义检索模型同样采用 MIT 许可证，来源和版权声明见 `licenses/MODEL-NOTICE.txt`。

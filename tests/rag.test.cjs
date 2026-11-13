@@ -6,18 +6,26 @@ const path = require('node:path');
 const { Vault } = require('../electron/lib/vault.cjs');
 const { RagService, chunkNote, DIMS } = require('../electron/lib/rag.cjs');
 
-const KEYWORD_GROUPS = [
-  ['写作', '压缩'],
-  ['灌溉', '供水'],
-  ['检索'],
-];
+const KEYWORD_GROUPS = {
+  zh: [
+    ['写作', '压缩'],
+    ['灌溉', '供水'],
+    ['检索'],
+  ],
+  en: [
+    ['writing', 'compress', 'summary'],
+    ['irrigation', 'water'],
+    ['retrieval'],
+  ],
+};
 
-function fakeEmbed(texts) {
+function fakeEmbed(texts, engine = { key: 'zh', dims: DIMS }) {
+  const groups = KEYWORD_GROUPS[engine.key] || KEYWORD_GROUPS.zh;
   return texts.map((text) => {
-    const vector = new Float32Array(DIMS);
+    const vector = new Float32Array(engine.dims || DIMS);
     let hit = false;
-    KEYWORD_GROUPS.forEach((group, index) => {
-      if (group.some((keyword) => text.includes(keyword))) {
+    groups.forEach((group, index) => {
+      if (group.some((keyword) => text.toLowerCase().includes(keyword))) {
         vector[index] += 1;
         hit = true;
       }
@@ -64,11 +72,16 @@ test('建立索引、增量更新与混合检索', async () => {
       content: '这份资料讨论写作和总结的关系。',
       source: 'test',
     });
+    const english = await vault.createNote({
+      type: 'note',
+      title: 'Writing methods',
+      body: 'Progressive writing compresses long articles into summaries. Reusable notes help retrieval.',
+    });
     const calls = [];
     const rag = new RagService(vault, {
-      embedFn: async (texts) => {
-        calls.push(...texts);
-        return fakeEmbed(texts);
+      embedFn: async (texts, engine) => {
+        calls.push(...texts.map((text) => `${engine.key}:${text}`));
+        return fakeEmbed(texts, engine);
       },
     });
     assert.equal((await rag.status()).ready, false);
@@ -76,11 +89,13 @@ test('建立索引、增量更新与混合检索', async () => {
     rag.onProgress = (item) => progress.push(item);
     const first = await rag.build();
     assert.equal(first.ready, true);
-    assert.ok(first.notes >= 3);
+    assert.ok(first.notes >= 4);
     assert.ok(first.chunks > 0);
     assert.ok(progress.some((item) => item.phase === 'done'));
-    await fsp.access(path.join(root, '.zhiyu', 'rag', 'index.json'));
-    await fsp.access(path.join(root, '.zhiyu', 'rag', 'vectors.f32'));
+    await fsp.access(path.join(root, '.zhiyu', 'rag', 'zh', 'index.json'));
+    await fsp.access(path.join(root, '.zhiyu', 'rag', 'zh', 'vectors.f32'));
+    await fsp.access(path.join(root, '.zhiyu', 'rag', 'en', 'index.json'));
+    await fsp.access(path.join(root, '.zhiyu', 'rag', 'en', 'vectors.f32'));
 
     const writingHit = await rag.search('写作', 4);
     assert.ok(writingHit.some((hit) => hit.path === writing.path));
@@ -88,6 +103,8 @@ test('建立索引、增量更新与混合检索', async () => {
     assert.equal(semanticHit[0].path, writing.path);
     const irrigationHit = await rag.search('供水', 4);
     assert.equal(irrigationHit[0].path, irrigation.path);
+    const englishHit = await rag.search('how to compress long articles', 4);
+    assert.equal(englishHit[0].path, english.path);
     const wikiOnly = await rag.search('写作', 10, { scope: 'wiki' });
     assert.ok(wikiOnly.every((hit) => hit.type !== 'raw'));
     assert.ok(!wikiOnly.some((hit) => hit.path === raw.path));

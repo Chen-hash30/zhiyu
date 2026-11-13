@@ -6,11 +6,9 @@ import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const MODEL = 'bge-small-zh-v1.5';
+const MODELS = ['bge-small-zh-v1.5', 'bge-small-en-v1.5'];
 const FILES = ['config.json', 'tokenizer.json', 'tokenizer_config.json', 'onnx/model_quantized.onnx'];
 const REMOTES = ['https://hf-mirror.com', 'https://huggingface.co'];
-const targetRoot = path.join(__dirname, '..', 'build', 'models', MODEL);
 const force = process.argv.includes('--force');
 
 function formatMb(bytes) {
@@ -41,22 +39,23 @@ async function download(url, destination) {
   await fsp.rename(temp, destination);
 }
 
-async function main() {
+async function downloadModel(model) {
+  const targetRoot = path.join(__dirname, '..', 'build', 'models', model);
   await fsp.mkdir(path.join(targetRoot, 'onnx'), { recursive: true });
   for (const file of FILES) {
     const destination = path.join(targetRoot, file);
     if (!force) {
       const stat = await fsp.stat(destination).catch(() => null);
       if (stat?.size > 0) {
-        console.log(`skip ${file}`);
+        console.log(`skip ${model}/${file}`);
         continue;
       }
     }
     let downloaded = false;
     let lastError = null;
     for (const remote of REMOTES) {
-      const url = `${remote}/Xenova/${MODEL}/resolve/main/${file}`;
-      console.log(`fetch ${file} from ${remote}`);
+      const url = `${remote}/Xenova/${model}/resolve/main/${file}`;
+      console.log(`fetch ${model}/${file} from ${remote}`);
       try {
         await download(url, destination);
         downloaded = true;
@@ -67,11 +66,15 @@ async function main() {
       }
     }
     if (!downloaded) {
-      throw new Error(`无法下载 ${file}: ${lastError?.message || '未知错误'}`);
+      throw new Error(`无法下载 ${model}/${file}: ${lastError?.message || '未知错误'}`);
     }
   }
-  console.log(`\n模型已就绪: ${targetRoot}`);
-  console.log('现在可以运行 npm run dev 或 npm run dist。');
+  console.log(`模型已就绪: ${targetRoot}`);
+}
+
+async function main() {
+  for (const model of MODELS) await downloadModel(model);
+  console.log('\n中英双引擎模型已就绪，现在可以运行 npm run dev 或 npm run dist。');
 }
 
 main().catch((error) => {
