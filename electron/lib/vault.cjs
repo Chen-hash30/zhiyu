@@ -20,6 +20,7 @@ const {
   asStringArray,
   isoDate,
   nowIso,
+  localIso,
   localDateStamp,
   localDateTime,
   queryTokens,
@@ -148,7 +149,91 @@ class Vault {
     }
 
     this.cache.clear();
+    await this.migrateLocalTimes();
     return this.info();
+  }
+
+  async migrateLocalTimes({ force = false } = {}) {
+    const marker = path.join(this.root, '.zhiyu', 'local-time-v1');
+    if (!force) {
+      const exists = await fsp.access(marker).then(() => true).catch(() => false);
+      if (exists) return;
+    }
+    const isoTimestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+    const convert = (value) => localIso(new Date(value));
+    try {
+      const files = [
+        ...(await this.listMarkdown('raw')),
+        ...(await this.listMarkdown('wiki')),
+      ];
+      for (const abs of files) {
+        const stat = await fsp.stat(abs).catch(() => null);
+        if (!stat || stat.size > LARGE_FILE_BYTES) continue;
+        const text = await fsp.readFile(abs, 'utf8').catch(() => null);
+        if (!text) continue;
+        const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+        if (!match) continue;
+        let inner = match[1];
+        let changed = false;
+        for (const key of ['created', 'updated', 'processed_at']) {
+          const pattern = new RegExp(
+            `^(\\s*${key}:\\s*)(['"]?)([^'"\\r\\n]+)\\2\\s*$`,
+            'm',
+          );
+          inner = inner.replace(pattern, (line, prefix, quote, value) => {
+            if (!isoTimestamp.test(value)) return line;
+            changed = true;
+            return `${prefix}${quote}${convert(value)}${quote}`;
+          });
+        }
+        if (!changed) continue;
+        const next = `---\n${inner}\n---${text.slice(match[0].length)}`;
+        await fsp.writeFile(abs, next, 'utf8');
+      }
+      for (const name of ['chats.json', 'trash.json', 'rag/index.json']) {
+        const abs = path.join(this.root, '.zhiyu', name);
+        const raw = await fsp.readFile(abs, 'utf8').catch(() => null);
+        if (!raw) continue;
+        let data;
+        try {
+          data = JSON.parse(raw);
+        } catch {
+          continue;
+        }
+        let changed = false;
+        const timeKeys = new Set(['createdAt', 'updatedAt', 'deletedAt', 'processed_at', 'created', 'updated', 'builtAt']);
+        const walk = (value) => {
+          if (Array.isArray(value)) {
+            value.forEach(walk);
+            return;
+          }
+          if (!value || typeof value !== 'object') return;
+          for (const [key, current] of Object.entries(value)) {
+            if (
+              typeof current === 'string' &&
+              timeKeys.has(key) &&
+              isoTimestamp.test(current)
+            ) {
+              value[key] = convert(current);
+              changed = true;
+            } else {
+              walk(current);
+            }
+          }
+        };
+        walk(data);
+        if (changed) {
+          await fsp.writeFile(abs, JSON.stringify(data, null, 2), 'utf8');
+        }
+      }
+      await fsp.writeFile(
+        marker,
+        JSON.stringify({ migratedAt: localIso(), timezone: localIso().slice(-6) }),
+        'utf8',
+      );
+    } catch (error) {
+      console.warn('[vault] local time migration failed:', error.message);
+    }
   }
 
   async ensureFile(rel, content) {
@@ -265,8 +350,16 @@ class Vault {
     const cjkCount = (plain.match(/[\u3400-\u9fff]/g) || []).length;
     const latinWords = (plain.replace(/[\u3400-\u9fff]/g, ' ').match(/[A-Za-z0-9]+/g) || []).length;
     const totalWords = cjkCount + latinWords;
-    const created = isoDate(data.created, stat.birthtime.toISOString().slice(0, 10));
-    const updated = isoDate(data.updated, stat.mtime.toISOString());
+    const created = data.created
+      ? data.created instanceof Date
+        ? localIso(data.created)
+        : String(data.created)
+      : localIso(stat.birthtime);
+    const updated = data.updated
+      ? data.updated instanceof Date
+        ? localIso(data.updated)
+        : String(data.updated)
+      : localIso(stat.mtime);
     const meta = {
       path: rel,
       title,

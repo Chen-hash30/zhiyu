@@ -174,11 +174,11 @@ async function bundle(root, snapshotDir) {
     throw new UserError('快照备份目录不能放在知识库内部');
   }
   await fs.promises.mkdir(resolvedDir, { recursive: true });
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[:.]/g, '-')
-    .replace('T', '_')
-    .slice(0, 19);
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(
+    now.getHours(),
+  )}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
   const safeName = path.basename(root).replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-').slice(0, 40);
   const target = path.join(resolvedDir, `${safeName}-${timestamp}.bundle`);
   await git(root, ['bundle', 'create', target, '--all']);

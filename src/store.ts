@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api, errorMessage } from './lib/api';
+import { localNowIso } from './lib/format';
 import type {
   AppState,
   AgentStep,
@@ -816,7 +817,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         id: crypto.randomUUID(),
         role: 'user',
         content,
-        createdAt: new Date().toISOString(),
+        createdAt: localNowIso(),
       };
       const history = get()
         .chat.filter((message) => !message.error)
@@ -849,7 +850,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         role: 'assistant',
         content: result.content,
         sources: result.sources,
-        createdAt: new Date().toISOString(),
+        createdAt: localNowIso(),
         agentTrace: get().agentTrace.length ? get().agentTrace : undefined,
         agentThinking: get().agentThinking || undefined,
       };
@@ -857,8 +858,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
         result.session || {
           id: result.sessionId,
           title: result.sessionTitle || '新对话',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: localNowIso(),
+          updatedAt: localNowIso(),
           messageCount: outgoing.length + 1,
           preview: result.content.slice(0, 80),
         };
@@ -880,7 +881,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         id: crypto.randomUUID(),
         role: 'assistant',
         content: '这次没有连上模型服务，检查设置后再试一次。',
-        createdAt: new Date().toISOString(),
+        createdAt: localNowIso(),
         error: true,
         agentTrace: get().agentTrace.length ? get().agentTrace : undefined,
         agentThinking: get().agentThinking || undefined,

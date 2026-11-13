@@ -1,3 +1,17 @@
+export function localNowIso(date = new Date()) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const offset = -date.getTimezoneOffset();
+  const sign = offset >= 0 ? '+' : '-';
+  const hours = pad(Math.floor(Math.abs(offset) / 60));
+  const minutes = pad(Math.abs(offset) % 60);
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${String(date.getMilliseconds()).padStart(
+    3,
+    '0',
+  )}${sign}${hours}:${minutes}`;
+}
+
 export function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value || '';

@@ -90,26 +90,44 @@ function asStringArray(value) {
   return [];
 }
 
-function isoDate(value, fallback = '') {
-  if (!value) return fallback;
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10);
-  }
-  const text = String(value).trim();
-  if (!text) return fallback;
-  const date = new Date(text);
-  if (Number.isNaN(date.getTime())) return text;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
-  return date.toISOString().slice(0, 10);
-}
-
-function nowIso() {
-  return new Date().toISOString();
-}
-
 function localDateStamp(date = new Date()) {
   const pad = (n) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function timezoneSuffix(date = new Date()) {
+  const offset = -date.getTimezoneOffset();
+  const sign = offset >= 0 ? '+' : '-';
+  const hours = String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0');
+  const minutes = String(Math.abs(offset) % 60).padStart(2, '0');
+  return `${sign}${hours}:${minutes}`;
+}
+
+function localIso(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${String(date.getMilliseconds()).padStart(
+    3,
+    '0',
+  )}${timezoneSuffix(date)}`;
+}
+
+function nowIso() {
+  return localIso(new Date());
+}
+
+function isoDate(value, fallback = '') {
+  if (!value) return fallback;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return localDateStamp(value);
+  }
+  const text = String(value).trim();
+  if (!text) return fallback;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return text;
+  return localDateStamp(date);
 }
 
 function localDateTime(date = new Date()) {
@@ -187,6 +205,8 @@ module.exports = {
   asStringArray,
   isoDate,
   nowIso,
+  localIso,
+  timezoneSuffix,
   localDateStamp,
   localDateTime,
   queryTokens,
