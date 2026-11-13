@@ -8,6 +8,7 @@ import type {
   Bootstrap,
   ChatMessage,
   ChatNoteRef,
+  ChatApproval,
   ChatSession,
   ChatSessionMeta,
   CreateNoteResult,
@@ -83,6 +84,7 @@ interface AppStore {
   chatStreaming: boolean;
   chatStreamText: string;
   chatNote: ChatNoteRef | null;
+  agentApproval: ChatApproval | null;
   chatRequestId: string | null;
   contextCompressing: boolean;
   ragStatus: RagStatus | null;
@@ -142,6 +144,7 @@ interface AppStore {
   compressChat: () => Promise<void>;
   setThinking: (value: boolean) => void;
   setChatNote: (note: ChatNoteRef | null) => void;
+  resolveAgentApproval: (approved: boolean) => Promise<void>;
   loadRagStatus: () => Promise<void>;
   buildRag: () => Promise<void>;
   cancelRag: () => Promise<void>;
@@ -267,6 +270,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   chatStreaming: false,
   chatStreamText: '',
   chatNote: null,
+  agentApproval: null,
   chatRequestId: null,
   contextCompressing: false,
   ragStatus: null,
@@ -324,6 +328,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
         chatToolStatus:
           payload.status === 'done' ? `${payload.label} · 已完成` : `${payload.label}…`,
       });
+    });
+    const offApproval = api.events.onChatApproval((payload) => {
+      if (payload.requestId && payload.requestId !== get().chatRequestId) return;
+      if (payload.expired) {
+        if (get().agentApproval?.id === payload.id) {
+          set({ agentApproval: null });
+          get().toast('info', '外部操作确认已超时', '可以重新让助手尝试。');
+        }
+        return;
+      }
+      set({ agentApproval: payload });
     });
     const offAgent = api.events.onAgent((payload) => {
       if (payload.requestId && payload.requestId !== get().chatRequestId) return;
@@ -397,6 +412,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       offOrganize,
       offChat,
       offTool,
+      offApproval,
       offAgent,
       offContext,
       offRag,
@@ -1072,6 +1088,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   setChatNote: (note) => set({ chatNote: note }),
+
+  resolveAgentApproval: async (approved) => {
+    const approval = get().agentApproval;
+    if (!approval) return;
+    set({ agentApproval: null });
+    try {
+      await api.ai.resolveApproval(approval.id, approved);
+    } catch (error) {
+      get().toast('error', '没有把选择送回助手', errorMessage(error));
+    }
+  },
 
   loadRagStatus: async () => {
     try {

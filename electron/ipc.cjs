@@ -30,6 +30,19 @@ function registerIpc({ settings, getWindow }) {
     }
   };
 
+  const pendingApprovals = new Map();
+  const requestApproval = (requestId, payload) =>
+    new Promise((resolve) => {
+      const id = crypto.randomUUID();
+      const timer = setTimeout(() => {
+        pendingApprovals.delete(id);
+        send('chat:approval', { requestId, id, expired: true });
+        resolve(false);
+      }, 120000);
+      pendingApprovals.set(id, { resolve, timer });
+      send('chat:approval', { requestId, id, ...payload });
+    });
+
   const requireVault = () => {
     if (!vault) fail('还没有打开知识库');
     return vault;
@@ -558,6 +571,15 @@ function registerIpc({ settings, getWindow }) {
     return { ok: true };
   });
 
+  handle('ai:resolveApproval', async (_event, id, approved) => {
+    const item = pendingApprovals.get(String(id));
+    if (!item) return { ok: false };
+    clearTimeout(item.timer);
+    pendingApprovals.delete(String(id));
+    item.resolve(Boolean(approved));
+    return { ok: true };
+  });
+
   handle('ai:applyOrganize', async (_event, id) => {
     const current = requireVault();
     ensureAi(current);
@@ -632,6 +654,7 @@ function registerIpc({ settings, getWindow }) {
         notePath: input.notePath ? String(input.notePath) : undefined,
         onTool: (tool) => send('chat:tool', { requestId, ...tool }),
         onAgent: (event) => send('chat:agent', { requestId, ...event }),
+        onApproval: (payload) => requestApproval(requestId, payload),
       },
     );
     const stored = messages
@@ -855,6 +878,11 @@ function registerIpc({ settings, getWindow }) {
   });
 
   app.once('before-quit', () => {
+    for (const item of pendingApprovals.values()) {
+      clearTimeout(item.timer);
+      item.resolve(false);
+    }
+    pendingApprovals.clear();
     mcp.close().catch(() => {});
   });
 }

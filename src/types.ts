@@ -162,6 +162,16 @@ export interface AgentEvent {
   args?: Record<string, unknown>;
 }
 
+export interface ChatApproval {
+  id: string;
+  requestId?: string;
+  tool: string;
+  label: string;
+  summary: string;
+  url?: string;
+  expired?: boolean;
+}
+
 export interface ChatSessionMeta {
   id: string;
   title: string;
@@ -400,6 +410,7 @@ export interface ZhiyuApi {
   ai: {
     organize: (paths: string[]) => Promise<OrganizePreview>;
     cancelOrganize: () => Promise<{ ok: boolean }>;
+    resolveApproval: (id: string, approved: boolean) => Promise<{ ok: boolean }>;
     applyOrganize: (id: string) => Promise<ApplyResult>;
     chat: (
       messages: ChatMessage[],
@@ -447,6 +458,7 @@ export interface ZhiyuApi {
     ) => () => void;
     onChatDelta: (callback: (payload: { requestId: string; delta: string }) => void) => () => void;
     onChatTool: (callback: (payload: { requestId: string; label: string; status: string }) => void) => () => void;
+    onChatApproval: (callback: (payload: ChatApproval) => void) => () => void;
     onAgent: (callback: (payload: AgentEvent) => void) => () => void;
     onContext: (callback: (payload: ContextEvent) => void) => () => void;
     onRagProgress: (callback: (payload: RagProgress) => void) => () => void;

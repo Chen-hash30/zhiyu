@@ -1124,6 +1124,7 @@ export const mockApi: ZhiyuApi = {
   },
   ai: {
     cancelOrganize: async () => ({ ok: true }),
+    resolveApproval: async () => ({ ok: true }),
     organize: async (paths) => {
       const rawPath = paths[0];
       const raw = findNote(rawPath);
@@ -1499,6 +1500,7 @@ export const mockApi: ZhiyuApi = {
       subscribe('organize:progress', callback as (payload: unknown) => void),
     onChatDelta: (callback) => subscribe('chat:delta', callback as (payload: unknown) => void),
     onChatTool: (callback) => subscribe('chat:tool', callback as (payload: unknown) => void),
+    onChatApproval: () => () => {},
     onAgent: (callback) => subscribe('chat:agent', callback as (payload: unknown) => void),
     onContext: () => () => {},
     onRagProgress: () => () => {},

@@ -67,6 +67,7 @@ contextBridge.exposeInMainWorld('zhiyu', {
   ai: {
     organize: (paths) => call('ai:organize', paths),
     cancelOrganize: () => call('ai:cancelOrganize'),
+    resolveApproval: (id, approved) => call('ai:resolveApproval', id, approved),
     applyOrganize: (id) => call('ai:applyOrganize', id),
     chat: (messages, requestId, options) =>
       call('ai:chat', { messages, requestId, ...(options || {}) }),
@@ -104,6 +105,7 @@ contextBridge.exposeInMainWorld('zhiyu', {
     onOrganizeProgress: (callback) => subscribe('organize:progress', callback),
     onChatDelta: (callback) => subscribe('chat:delta', callback),
     onChatTool: (callback) => subscribe('chat:tool', callback),
+    onChatApproval: (callback) => subscribe('chat:approval', callback),
     onAgent: (callback) => subscribe('chat:agent', callback),
     onContext: (callback) => subscribe('chat:context', callback),
     onRagProgress: (callback) => subscribe('rag:progress', callback),

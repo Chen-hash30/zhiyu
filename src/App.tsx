@@ -6,6 +6,7 @@ import { ToastStack } from './components/ToastStack';
 import { CommandPalette } from './components/CommandPalette';
 import { GlobalModals } from './components/GlobalModals';
 import { OrganizeTask } from './components/OrganizeTask';
+import { AgentApprovalModal } from './components/AgentApprovalModal';
 import { Logo } from './components/Logo';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { HomePage } from './pages/HomePage';
@@ -167,6 +168,7 @@ export function App() {
       <CommandPalette />
       <GlobalModals />
       <OrganizeTask />
+      <AgentApprovalModal />
       <ToastStack />
     </div>
   );

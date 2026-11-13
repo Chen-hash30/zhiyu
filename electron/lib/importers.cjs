@@ -153,6 +153,7 @@ module.exports = {
   SUPPORTED_EXTENSIONS,
   BINARY_EXTENSIONS,
   extractDocument,
+  extractHtml,
   decodeText,
   decodeHtml,
   normalizeMarkdown,
