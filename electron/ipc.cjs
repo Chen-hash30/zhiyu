@@ -459,7 +459,16 @@ function registerIpc({ settings, getWindow }) {
     const result = await dialog.showOpenDialog(win, {
       title: '导入资料',
       properties: ['openFile', 'multiSelections'],
-      filters: [{ name: 'Markdown 或文本', extensions: ['md', 'markdown', 'txt'] }],
+      filters: [
+        {
+          name: '支持的文档',
+          extensions: ['md', 'markdown', 'txt', 'pdf', 'docx', 'html', 'htm'],
+        },
+        { name: 'Markdown 或文本', extensions: ['md', 'markdown', 'txt'] },
+        { name: 'PDF', extensions: ['pdf'] },
+        { name: 'Word 文档', extensions: ['docx'] },
+        { name: '网页', extensions: ['html', 'htm'] },
+      ],
       buttonLabel: '导入',
     });
     if (result.canceled || !result.filePaths.length) {

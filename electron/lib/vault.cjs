@@ -5,6 +5,11 @@ const crypto = require('node:crypto');
 const matter = require('gray-matter');
 const chokidar = require('chokidar');
 const {
+  SUPPORTED_EXTENSIONS,
+  extractDocument,
+  decodeText,
+} = require('./importers.cjs');
+const {
   UserError,
   fail,
   resolveInside,
@@ -426,12 +431,22 @@ class Vault {
   async importFile(filePath) {
     const abs = path.resolve(String(filePath || ''));
     const ext = path.extname(abs).toLowerCase();
-    if (!['.md', '.markdown', '.txt'].includes(ext)) {
-      throw new UserError('暂时支持 Markdown 和纯文本文件');
+    if (!SUPPORTED_EXTENSIONS.has(ext)) {
+      throw new UserError('支持 Markdown、TXT、PDF、Word (.docx) 和 HTML 文件');
     }
     const stat = await fsp.stat(abs).catch(() => null);
     if (!stat || !stat.isFile()) throw new UserError('找不到这个文件');
-    const text = await fsp.readFile(abs, 'utf8');
+    if (['.pdf', '.docx', '.html', '.htm'].includes(ext)) {
+      const extracted = await extractDocument(abs);
+      return this.importText({
+        title: extracted.title || path.basename(abs, ext),
+        content: extracted.body,
+        source: abs,
+        author: extracted.author || '',
+        kind: 'file',
+      });
+    }
+    const text = decodeText(await fsp.readFile(abs));
     if (ext === '.txt') {
       return this.importText({
         title: path.basename(abs, ext),

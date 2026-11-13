@@ -1,6 +1,6 @@
 {
   "name": "zhiyu",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "productName": "知屿",
   "private": true,
   "description": "知屿 —— 本地优先的 AI 个人知识库",
@@ -27,7 +27,9 @@
     "diff": "^5.2.0",
     "gray-matter": "^4.0.3",
     "linkedom": "^0.18.0",
-    "turndown": "^7.2.0"
+    "mammoth": "^1.13.0",
+    "turndown": "^7.2.0",
+    "unpdf": "^1.9.1"
   },
   "devDependencies": {
     "@codemirror/lang-markdown": "^6.3.0",
