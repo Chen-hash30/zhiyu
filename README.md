@@ -4,6 +4,16 @@
 
 知屿把资料收集、知识整理和日常阅读放在同一个本地工作区里：网页、文本和 Markdown 文件先进入收件箱，AI 按你写的规则整理成概念、实体和来源，所有内容都以 Markdown 文件保存在本机。
 
+## 界面预览
+
+![知屿概览](docs/screenshots/home.webp)
+
+| 对话与来源 | 本地语义检索 |
+| --- | --- |
+| ![对话](docs/screenshots/chat.webp) | ![语义检索](docs/screenshots/settings-rag.webp) |
+
+![AI 整理](docs/screenshots/organize.webp)
+
 ## 主要能力
 
 - **三层本地结构**：`raw/` 原始资料、`wiki/` 知识条目、`AGENTS.md` 整理规则。
