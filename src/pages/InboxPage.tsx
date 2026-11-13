@@ -9,61 +9,10 @@ import {
 } from 'lucide-react';
 import { relativeTime } from '../lib/format';
 import { useAppStore } from '../store';
-import type { NoteMeta, OrganizePreview } from '../types';
-import { AiPreviewModal } from '../components/AiPreviewModal';
+import type { NoteMeta } from '../types';
 import { EmptyState } from '../components/EmptyState';
 import { NoteEditor } from '../components/NoteEditor';
 import { NoteReader } from '../components/NoteReader';
-
-function AiWorkingOverlay({
-  title,
-  current,
-  total,
-  cancelling,
-  onCancel,
-}: {
-  title: string;
-  current: number;
-  total: number;
-  cancelling: boolean;
-  onCancel: () => void;
-}) {
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setElapsed((value) => value + 1), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  return (
-    <div className="ai-working-overlay">
-      <div className="ai-working-card">
-        <div className="ai-working-head">
-          <span className="ai-working-pulse" />
-          <span className="ai-working-kicker">AI 正在整理</span>
-          <button
-            type="button"
-            className="ai-working-stop"
-            onClick={onCancel}
-            disabled={cancelling}
-          >
-            {cancelling ? '正在停止…' : '停止'}
-          </button>
-        </div>
-        <h3 className="ai-working-title" title={title}>
-          {title || '正在阅读资料'}
-        </h3>
-        <div className="ai-working-meta">
-          <span>{total > 1 ? `第 ${Math.max(1, current)} / ${total} 份` : '正在读取与归类'}</span>
-          <span>已用 {elapsed} 秒</span>
-        </div>
-        <div className="ai-progress">
-          <span />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function NoteSkeleton() {
   return (
@@ -104,15 +53,11 @@ export function InboxPage() {
   const setChatDraft = useAppStore((state) => state.setChatDraft);
   const setChatNote = useAppStore((state) => state.setChatNote);
   const organize = useAppStore((state) => state.organize);
-  const cancelOrganize = useAppStore((state) => state.cancelOrganize);
   const promoteRaw = useAppStore((state) => state.promoteRaw);
-  const aiProgress = useAppStore((state) => state.aiProgress);
+  const organizeRunning = useAppStore((state) => state.organizeRunning);
   const toast = useAppStore((state) => state.toast);
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
   const [query, setQuery] = useState('');
-  const [preview, setPreview] = useState<OrganizePreview | null>(null);
-  const [organizing, setOrganizing] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
   const [promoting, setPromoting] = useState(false);
 
   const rawNotes = useMemo(() => notes.filter((item) => item.type === 'raw'), [notes]);
@@ -124,13 +69,13 @@ export function InboxPage() {
   });
 
   useEffect(() => {
-    if (organizing) return;
+    if (organizeRunning) return;
     const current = rawNotes.find((item) => item.path === activePath);
     if (!current && !editing && visible.length) {
       const safe = visible.find((item) => !isLargeMeta(item));
       if (safe) selectNote(safe.path);
     }
-  }, [activePath, editing, organizing, rawNotes, selectNote, visible]);
+  }, [activePath, editing, organizeRunning, rawNotes, selectNote, visible]);
 
   const resolveLink = (target: string) => {
     const normalized = target.replace(/\.md$/i, '').trim().toLowerCase();
@@ -150,22 +95,9 @@ export function InboxPage() {
     }
   };
 
-  const startOrganize = async (paths: string[]) => {
-    if (!paths.length || organizing) return;
-    setOrganizing(true);
-    setCancelling(false);
-    try {
-      const result = await organize(paths);
-      if (result) setPreview(result);
-    } finally {
-      setOrganizing(false);
-      setCancelling(false);
-    }
-  };
-
-  const stopOrganize = () => {
-    setCancelling(true);
-    void cancelOrganize();
+  const startOrganize = (paths: string[]) => {
+    if (!paths.length || organizeRunning) return;
+    void organize(paths);
   };
 
   const promote = async (path: string) => {
@@ -179,7 +111,6 @@ export function InboxPage() {
   };
 
   const selectedIsRaw = note?.type === 'raw';
-  const currentTitle = note?.title || '';
 
   return (
     <div className="page page-split">
@@ -217,7 +148,7 @@ export function InboxPage() {
             <button
               type="button"
               className="btn btn-sm btn-outline"
-              disabled={organizing}
+              disabled={organizeRunning}
               onClick={() => void startOrganize(pendingNotes.map((item) => item.path))}
             >
               <Sparkles size={13.5} />
@@ -325,7 +256,7 @@ export function InboxPage() {
                     navigate('chat');
                   }}
                   onOrganize={() => void startOrganize([note.path])}
-                  organizing={organizing}
+                  organizing={organizeRunning}
                   onPromote={() => void promote(note.path)}
                   promoting={promoting}
                 />
@@ -366,17 +297,6 @@ export function InboxPage() {
           )}
         </section>
       </div>
-
-      {organizing ? (
-        <AiWorkingOverlay
-          title={aiProgress?.title || currentTitle}
-          current={aiProgress?.current || 0}
-          total={aiProgress?.total || 0}
-          cancelling={cancelling}
-          onCancel={stopOrganize}
-        />
-      ) : null}
-      <AiPreviewModal preview={preview} onClose={() => setPreview(null)} />
     </div>
   );
 }

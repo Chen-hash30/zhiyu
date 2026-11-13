@@ -931,41 +931,30 @@
   color: var(--muted);
 }
 
-/* ---------- AI working ---------- */
-.ai-working-overlay {
+/* ---------- Organize task dock ---------- */
+.organize-dock {
   position: fixed;
-  inset: 0;
-  z-index: 110;
-  display: grid;
-  place-items: center;
-  background: rgba(24, 20, 14, 0.34);
-  backdrop-filter: blur(6px);
-  animation: overlay-in 180ms var(--ease-soft) both;
-}
-
-[data-theme="dark"] .ai-working-overlay {
-  background: rgba(0, 0, 0, 0.55);
-}
-
-.ai-working-card {
-  width: 360px;
-  max-width: calc(100vw - 44px);
-  padding: 18px 20px 20px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 90;
+  width: 310px;
+  max-width: calc(100vw - 32px);
+  padding: 13px 15px 14px;
   background: var(--surface);
   border: 1px solid var(--line-strong);
-  border-radius: 14px;
+  border-radius: 12px;
   text-align: left;
   box-shadow: var(--shadow-lg);
-  animation: modal-in 220ms var(--ease) both;
+  animation: modal-in 200ms var(--ease) both;
 }
 
-.ai-working-head {
+.organize-dock-head {
   display: flex;
   align-items: center;
   gap: 7px;
 }
 
-.ai-working-pulse {
+.organize-dock-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -985,14 +974,14 @@
   }
 }
 
-.ai-working-kicker {
-  font-size: 10px;
+.organize-dock-head b {
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   color: var(--accent-deep);
 }
 
-.ai-working-stop {
+.organize-dock-stop {
   margin-left: auto;
   padding: 2px 6px;
   border: none;
@@ -1004,19 +993,19 @@
   transition: color 140ms var(--ease), background 140ms var(--ease);
 }
 
-.ai-working-stop:hover:not(:disabled) {
+.organize-dock-stop:hover:not(:disabled) {
   color: var(--danger);
   background: var(--surface-2);
 }
 
-.ai-working-stop:disabled {
+.organize-dock-stop:disabled {
   opacity: 0.6;
   cursor: default;
 }
 
-.ai-working-title {
-  margin-top: 10px;
-  font-size: 14px;
+.organize-dock-title {
+  margin-top: 8px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--ink-strong);
   white-space: nowrap;
@@ -1024,25 +1013,25 @@
   text-overflow: ellipsis;
 }
 
-.ai-working-meta {
+.organize-dock-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-top: 6px;
-  font-size: 10.5px;
+  margin-top: 5px;
+  font-size: 10px;
   color: var(--muted);
 }
 
-.ai-progress {
+.organize-dock-bar {
   height: 3px;
+  margin-top: 11px;
   border-radius: 999px;
   background: var(--surface-3);
-  margin-top: 14px;
   overflow: hidden;
 }
 
-.ai-progress span {
+.organize-dock-bar span {
   display: block;
   width: 42%;
   height: 100%;

@@ -1,4 +1,14 @@
-const { app, BrowserWindow, Menu, nativeTheme, screen, shell } = require('electron');
+const {
+  app,
+  BrowserWindow,
+  Menu,
+  Tray,
+  Notification,
+  nativeImage,
+  nativeTheme,
+  screen,
+  shell,
+} = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { SettingsStore } = require('./lib/settings.cjs');
@@ -7,6 +17,9 @@ const { registerIpc } = require('./ipc.cjs');
 const isMac = process.platform === 'darwin';
 let mainWindow = null;
 let settings = null;
+let tray = null;
+let isQuitting = false;
+let closeHintShown = false;
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -19,8 +32,7 @@ function backgroundColor() {
   return dark ? '#171614' : '#f6f2ea';
 }
 
-function usableBounds(bounds) {
-  if (!bounds || typeof bounds.width !== 'number' || typeof bounds.height !== 'number') return null;
+function usableBounds(bounds) {  if (!bounds || typeof bounds.width !== 'number' || typeof bounds.height !== 'number') return null;
   if (bounds.width < 900 || bounds.height < 600) return null;
   const visible = screen.getAllDisplays().some((display) => {
     const area = display.workArea;
@@ -29,6 +41,51 @@ function usableBounds(bounds) {
     return horizontal && vertical;
   });
   return visible ? bounds : null;
+}
+
+function createTray() {
+  if (tray) return;
+  const iconPath = path.join(__dirname, '..', 'build', 'icon.png');
+  let image = nativeImage.createFromPath(iconPath);
+  if (image.isEmpty()) {
+    try {
+      image = nativeImage.createFromBuffer(fs.readFileSync(iconPath));
+    } catch {
+      image = nativeImage.createEmpty();
+    }
+  }
+  if (image.isEmpty()) {
+    console.warn('[tray] icon unavailable:', iconPath);
+    return;
+  }
+  tray = new Tray(image.resize({ width: 16, height: 16 }));
+  tray.setToolTip('知屿');
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: '打开知屿', click: () => showMainWindow() },
+      { type: 'separator' },
+      {
+        label: '退出知屿',
+        click: () => {
+          isQuitting = true;
+          app.quit();
+        },
+      },
+    ]),
+  );
+  tray.on('click', () => showMainWindow());
+  tray.on('double-click', () => showMainWindow());
+  console.log('[tray] created');
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+  }
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
 }
 
 function createWindow() {
@@ -94,10 +151,27 @@ function createWindow() {
 
   mainWindow.on('maximize', () => mainWindow?.webContents.send('window:maximized', true));
   mainWindow.on('unmaximize', () => mainWindow?.webContents.send('window:maximized', false));
-  mainWindow.on('close', () => {
+  mainWindow.on('close', (event) => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const bounds = mainWindow.getNormalBounds();
     settings.update({ windowBounds: bounds });
+    if (isQuitting) return;
+    event.preventDefault();
+    mainWindow.hide();
+    if (!closeHintShown) {
+      closeHintShown = true;
+      if (Notification.isSupported()) {
+        try {
+          new Notification({
+            title: '知屿仍在后台运行',
+            body: 'AI 整理等任务会继续，点击托盘图标可重新打开。',
+            silent: true,
+          }).show();
+        } catch {
+          // notifications may be disabled by the system
+        }
+      }
+    }
   });
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -141,9 +215,11 @@ app.on('web-contents-created', (_event, contents) => {
 });
 
 app.on('second-instance', () => {
-  if (!mainWindow) return;
-  if (mainWindow.isMinimized()) mainWindow.restore();
-  mainWindow.focus();
+  showMainWindow();
+});
+
+app.on('before-quit', () => {
+  isQuitting = true;
 });
 
 app.whenReady().then(() => {
@@ -161,12 +237,17 @@ app.whenReady().then(() => {
   nativeTheme.themeSource = settings.get().theme || 'system';
   registerIpc({ settings, getWindow: () => mainWindow });
   createWindow();
+  createTray();
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      createWindow();
+    } else {
+      showMainWindow();
+    }
   });
 });
 
 app.on('window-all-closed', () => {
-  if (!isMac) app.quit();
+  if (isQuitting) app.quit();
 });

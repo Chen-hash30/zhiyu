@@ -76,6 +76,10 @@ interface AppStore {
   toasts: ToastItem[];
   aiBusy: boolean;
   aiProgress: AiProgress | null;
+  organizeRunning: boolean;
+  organizeCancelling: boolean;
+  organizeStartedAt: number | null;
+  organizePreview: OrganizePreview | null;
   chatStreaming: boolean;
   chatStreamText: string;
   chatNote: ChatNoteRef | null;
@@ -127,6 +131,7 @@ interface AppStore {
   promoteRaw: (notePath: string) => Promise<void>;
   organize: (paths: string[]) => Promise<OrganizePreview | null>;
   cancelOrganize: () => Promise<void>;
+  setOrganizePreview: (preview: OrganizePreview | null) => void;
   applyOrganize: (id: string) => Promise<ApplyResult | null>;
   sendChat: (text: string) => Promise<void>;
   newChat: () => Promise<void>;
@@ -255,6 +260,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
   toasts: [],
   aiBusy: false,
   aiProgress: null,
+  organizeRunning: false,
+  organizeCancelling: false,
+  organizeStartedAt: null,
+  organizePreview: null,
   chatStreaming: false,
   chatStreamText: '',
   chatNote: null,
@@ -618,6 +627,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
         note: null,
         editing: false,
         paletteOpen: false,
+        aiBusy: false,
+        aiProgress: null,
+        organizeRunning: false,
+        organizeCancelling: false,
+        organizeStartedAt: null,
+        organizePreview: null,
       });
       window.history.replaceState(null, '', buildHash('home'));
       applyDomTheme(state.settings.theme);
@@ -642,6 +657,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
         note: null,
         editing: false,
         paletteOpen: false,
+        aiBusy: false,
+        aiProgress: null,
+        organizeRunning: false,
+        organizeCancelling: false,
+        organizeStartedAt: null,
+        organizePreview: null,
       });
       window.history.replaceState(null, '', buildHash('home'));
       applyDomTheme(state.settings.theme);
@@ -739,17 +760,34 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   organize: async (paths) => {
-    if (!paths.length) return null;
+    if (!paths.length || get().organizeRunning) return null;
     set({
       aiBusy: true,
       aiProgress: { current: 0, total: paths.length, title: '正在阅读资料' },
+      organizeRunning: true,
+      organizeCancelling: false,
+      organizeStartedAt: Date.now(),
+      organizePreview: null,
     });
     try {
       const preview = await api.ai.organize(paths);
-      set({ aiBusy: false, aiProgress: null });
+      set({
+        aiBusy: false,
+        aiProgress: null,
+        organizeRunning: false,
+        organizeCancelling: false,
+        organizeStartedAt: null,
+        organizePreview: preview,
+      });
       return preview;
     } catch (error) {
-      set({ aiBusy: false, aiProgress: null });
+      set({
+        aiBusy: false,
+        aiProgress: null,
+        organizeRunning: false,
+        organizeCancelling: false,
+        organizeStartedAt: null,
+      });
       const message = errorMessage(error);
       if (message.includes('取消')) {
         get().toast('info', '已停止整理');
@@ -761,12 +799,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   cancelOrganize: async () => {
+    if (!get().organizeRunning) return;
+    set({ organizeCancelling: true });
     try {
       await api.ai.cancelOrganize();
     } catch {
       // 整理已经结束时取消是空操作
     }
   },
+
+  setOrganizePreview: (preview) => set({ organizePreview: preview }),
 
   applyOrganize: async (id) => {
     set({ aiBusy: true });
@@ -777,6 +819,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         stats: computeStats(result.notes),
         git: result.git,
         aiBusy: false,
+        organizePreview: null,
       });
       get().toast(
         'success',
